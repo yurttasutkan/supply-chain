@@ -1,4 +1,6 @@
 const Block = require("./block");
+const Transaction = require("./transaction");
+
 
 class Blockchain {
   constructor() {
@@ -91,12 +93,4 @@ class Blockchain {
   }
 }
 
-class Transaction {
-  constructor(fromAddress, toAddress, amount) {
-    this.fromAddress = fromAddress;
-    this.toAddress = toAddress;
-    this.amount = amount;
-  }
-}
-
-module.exports = { Blockchain, Transaction };
+module.exports =  Blockchain;

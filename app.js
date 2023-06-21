@@ -1,5 +1,9 @@
+
 const express = require("express");
-const { Blockchain, Transaction } = require("./blockchain");
+const Blockchain  = require("./blockchain");
+const  Transaction = require("./transaction");
+const Block = require("./block");
+const Peer = require("./peer");
 
 // Create the blockchain
 const blockchain = new Blockchain();
