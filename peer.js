@@ -11,8 +11,8 @@ class Peer {
     this.blockchain = new Blockchain();
     this.wallet = new Wallet();
     this.peers = [
-      { id: 1, host: 'localhost' },
-      { id: 2, host: 'localhost' },
+      { id: 1, host: 'localhost', port: 6001 },
+      { id: 2, host: 'localhost', port: 6002 },
       // Add more peers here
     ];
 
@@ -27,32 +27,44 @@ class Peer {
     this.id = this.peers.length - 1;
     this.initServer();
     this.connectToPeers();
-    this.clientSockets.push(this.server);
     this.startPeerTransactions();
     this.startConsumer();
     // Set the peerId for each client socket
+    console.log(this.clientSockets.length)
     this.clientSockets.forEach((socket, index) => {
+      console.log(`socket: ${socket} id: ${this.peers[index].id}`);
       socket.peerId = this.peers[index].id;
     });
   }
 
   initServer() {
-    this.server = net.createServer((socket) => {
-      this.receiveMessage(socket);
-    });
-
-    this.server.listen(this.port + this.id, this.host, () => {
-      console.log(`Peer ${this.id}: Server started on port ${this.port + this.id}`);
+    this.peers.forEach((peer) => {
+      const server = net.createServer((socket) => {
+        this.receiveMessage(socket);
+      });
+  
+      server.listen(this.port + peer.id, this.host, () => {
+        console.log(`Peer ${this.id}: Server started on port ${this.port + peer.id}`);
+      });
+  
+      this.clientSockets.push(server);
     });
   }
+  
 
   connectToPeers() {
     this.peers.forEach((peer) => {
       if (peer.id !== this.id) {
-        let client = net.connect({ port: this.port + peer.id, host: this.host }, () => {
-          console.log(`Peer ${this.id}: Connected to Peer ${peer.id}`);
-          this.clientSockets.push(client);
-        });
+        setTimeout(() => {
+          let client = net.connect({ port: this.port + peer.id, host: this.host }, () => {
+            console.log(`Peer ${this.id}: Connected to Peer ${peer.id}`);
+            this.clientSockets.push(client);
+          });
+
+          client.on('error', (error) => {
+            console.log(`Peer ${this.id}: Connection to Peer ${peer.id} failed. Error: ${error.message}`);
+          });
+        }, 1000); // Add a delay of 1 second (adjust as needed)
       }
     });
   }

@@ -1,9 +1,10 @@
-const StringUtil = require('./stringUtil');
 const TransactionInput = require('./transactionInput');
 const TransactionOutput = require('./transactionOutput');
+const crypto = require('crypto');
+const StringUtil = require('./stringUtil');
 
 class Transaction {
-  constructor(fromAddress, toAddress, amount) {
+  constructor(blockchain, fromAddress, toAddress, amount) {
     this.fromAddress = fromAddress;
     this.toAddress = toAddress;
     this.amount = amount;
@@ -14,13 +15,15 @@ class Transaction {
     this.outputs = [];
 
     // UTXOs for this transaction
-    this.createOutputs();
+    this.createOutputs(blockchain);
   }
 
   calculateTransactionId() {
+    
     const data = this.fromAddress + this.toAddress + this.amount.toString() + this.timestamp.toString();
     return StringUtil.applySha256(data);
   }
+  
 
   signTransaction(signingKey) {
     const sign = crypto.createSign('SHA256');
@@ -44,29 +47,29 @@ class Transaction {
     return verify.verify(publicKey, this.signature, 'hex');
   }
 
-  processTransaction() {
+  processTransaction(blockchain) {
     if (!this.isValid()) {
       console.log('Invalid transaction');
       return false;
     }
 
-    const senderBalance = getBalanceOfAddress(this.fromAddress);
+    const senderBalance = blockchain.getBalanceOfAddress(this.fromAddress);
 
     if (senderBalance < this.amount) {
       console.log('Insufficient balance. Transaction rejected.');
       return false;
     }
 
-    updateBalances();
+    blockchain.updateBalances();
     return true;
   }
 
-  createOutputs() {
+  createOutputs(blockchain) {
     const output = new TransactionOutput(this.toAddress, this.amount);
     output.transactionOutputId = this.transactionId;
     this.outputs.push(output);
 
-    const leftoverAmount = getBalanceOfAddress(this.fromAddress) - this.amount;
+    const leftoverAmount = blockchain.getBalanceOfAddress(this.fromAddress) - this.amount;
     if (leftoverAmount > 0) {
       const leftoverOutput = new TransactionOutput(this.fromAddress, leftoverAmount);
       leftoverOutput.transactionOutputId = this.transactionId;

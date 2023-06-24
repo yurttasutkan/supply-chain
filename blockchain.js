@@ -4,11 +4,15 @@ const StringUtil = require("./stringUtil");
 
 class Blockchain {
   constructor() {
-    this.chain = [this.createGenesisBlock()];
+    this.chain = [];
     this.difficulty = 4;
     this.pendingTransactions = [];
     this.miningReward = 100;
     this.balances = {};
+
+    // Create the genesis block and update balances
+    this.chain.push(this.createGenesisBlock());
+    this.balances = this.updateBalances();
   }
 
   minePendingTransactions(miningRewardAddress) {
@@ -33,47 +37,33 @@ class Blockchain {
     this.chain.push(block);
 
     this.pendingTransactions = [];
+    this.updateBalances(); // Update balances after mining
   }
 
   createGenesisBlock() {
-    const transactions = []; // Initialize an empty array for transactions
-
-    // Add initial transactions to establish the initial distribution of funds
-    const initialTransaction1 = new Transaction(null, "address1", 100);
+    const transactions = [];
+    const initialTransaction1 = new Transaction(
+      this,
+      "address1",
+      "address2",
+      100
+    );
     transactions.push(initialTransaction1);
-
-    const initialTransaction2 = new Transaction(null, "address2", 50);
+    
+    const initialTransaction2 = new Transaction(
+      this,
+      "address2",
+      "address3",
+      50
+    );
     transactions.push(initialTransaction2);
+    
 
-    // Create the genesis block with the initial transactions
     return new Block(0, Date.now(), transactions, "0", 0);
   }
 
   getLastBlock() {
     return this.chain[this.chain.length - 1];
-  }
-
-  minePendingTransactions(miningRewardAddress) {
-    const rewardTx = new Transaction(
-      null,
-      miningRewardAddress,
-      this.miningReward
-    );
-    this.pendingTransactions.push(rewardTx);
-
-    const block = new Block(
-      this.chain.length,
-      Date.now(),
-      this.pendingTransactions,
-      this.getLastBlock().hash,
-      0
-    );
-    block.mineBlock(this.difficulty);
-
-    console.log("Block successfully mined!");
-    this.chain.push(block);
-
-    this.pendingTransactions = [];
   }
 
   createTransaction(transaction) {
@@ -108,6 +98,27 @@ class Blockchain {
 
     return balance;
   }
+
+  updateBalances() {
+    const updatedBalances = {};
+  
+    for (const block of this.chain) {
+      for (const transaction of block.transactions) {
+        const { fromAddress, toAddress, amount } = transaction;
+  
+        if (fromAddress) {
+          // Decrease the balance of the sender
+          updatedBalances[fromAddress] = (updatedBalances[fromAddress] || 0) - amount;
+        }
+  
+        // Increase the balance of the recipient
+        updatedBalances[toAddress] = (updatedBalances[toAddress] || 0) + amount;
+      }
+    }
+  
+    return updatedBalances;
+  }
+  
 
   isChainValid() {
     for (let i = 1; i < this.chain.length; i++) {
