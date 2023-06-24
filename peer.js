@@ -3,6 +3,7 @@ const { Block } = require('./block');
 const Blockchain = require('./blockchain');
 const Transaction = require('./transaction');
 const Wallet = require('./wallet');
+const StringUtil = require('./stringUtil');
 
 class Peer {
   constructor() {
@@ -68,7 +69,7 @@ class Peer {
             this.peers[receiver].wallet.publicKey,
             amount
           );
-          this.broadcastToAllPeers(transaction.serialize());
+          this.broadcastToAllPeers(StringUtil.serialize(transaction));
           console.log(`Peer ${this.id}: Transaction broadcasted -> ID: ${transaction.transactionId} Value: ${transaction.amount}`);
         }
       }
@@ -79,7 +80,7 @@ class Peer {
     setInterval(() => {
       if (this.messageQueue.length > 0) {
         const message = this.messageQueue.shift();
-        const transaction = Transaction.deserialize(message);
+        const transaction = StringUtil.deserialize(message, Transaction);
         console.log(`Peer ${this.id}: Transaction received -> ${transaction.fromAddress.substring(0, 5)} ==> Number of txs in my mempool: ${this.blockchain.mempool.length}`);
         if (transaction.isValid()) {
           this.blockchain.mempool.push(transaction);
@@ -117,20 +118,22 @@ class Peer {
   }
 
   handleSyncRequest(message, peerId) {
-    const { type, data } = JSON.parse(message);
+    const { type, data } = StringUtil.deserialize(message);
     if (type === 'sync') {
       if (data === 'blockchain') {
         const blockchain = this.blockchain.serialize();
-        const message = JSON.stringify({ type: 'blockchain', data: blockchain });
-        this.sendMessage(peerId, message);
+        const serializedBlockchain = StringUtil.serialize(blockchain);
+        const response = StringUtil.serialize({ type: 'blockchain', data: serializedBlockchain });
+        this.sendMessage(peerId, response);
       }
     }
   }
 
   handleSyncResponse(message) {
-    const { type, data } = JSON.parse(message);
+    const { type, data } = StringUtil.deserialize(message);
     if (type === 'blockchain') {
-      const blockchain = Blockchain.deserialize(data);
+      const deserializedData = StringUtil.deserialize(data);
+      const blockchain = Blockchain.deserialize(deserializedData);
       if (blockchain.isValid() && blockchain.blocks.length > this.blockchain.blocks.length) {
         this.blockchain = blockchain;
         console.log(`Peer ${this.id}: Updated blockchain from synchronization`);
@@ -139,7 +142,7 @@ class Peer {
   }
 
   handleIncomingMessage(message, peerId) {
-    const { type } = JSON.parse(message);
+    const { type } = StringUtil.deserialize(message);
     if (type === 'sync') {
       this.handleSyncRequest(message, peerId);
     } else {

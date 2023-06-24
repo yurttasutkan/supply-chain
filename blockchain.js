@@ -1,6 +1,6 @@
-const {Block} = require("./block");
+const { Block } = require("./block");
 const Transaction = require("./transaction");
-
+const StringUtil = require("./stringUtil");
 
 class Blockchain {
   constructor() {
@@ -34,17 +34,17 @@ class Blockchain {
 
     this.pendingTransactions = [];
   }
-  
+
   createGenesisBlock() {
     const transactions = []; // Initialize an empty array for transactions
-  
+
     // Add initial transactions to establish the initial distribution of funds
     const initialTransaction1 = new Transaction(null, "address1", 100);
     transactions.push(initialTransaction1);
-  
+
     const initialTransaction2 = new Transaction(null, "address2", 50);
     transactions.push(initialTransaction2);
-  
+
     // Create the genesis block with the initial transactions
     return new Block(0, Date.now(), transactions, "0", 0);
   }
@@ -125,6 +125,14 @@ class Blockchain {
 
     return true;
   }
+
+  serialize() {
+    return StringUtil.serialize(this);
+  }
+
+  static deserialize(data) {
+    return StringUtil.deserialize(data, Blockchain);
+  }
 }
 
-module.exports =  Blockchain;
+module.exports = Blockchain;

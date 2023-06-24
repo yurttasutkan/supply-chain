@@ -1,4 +1,6 @@
-const crypto = require('crypto');
+const StringUtil = require('./stringUtil');
+const TransactionInput = require('./transactionInput');
+const TransactionOutput = require('./transactionOutput');
 
 class Transaction {
   constructor(fromAddress, toAddress, amount) {
@@ -8,12 +10,16 @@ class Transaction {
     this.timestamp = Date.now();
     this.transactionId = this.calculateTransactionId();
     this.signature = null;
+    this.inputs = [];
+    this.outputs = [];
+
+    // UTXOs for this transaction
+    this.createOutputs();
   }
 
   calculateTransactionId() {
     const data = this.fromAddress + this.toAddress + this.amount.toString() + this.timestamp.toString();
-    const hash = crypto.createHash('sha256').update(data).digest('hex');
-    return hash;
+    return StringUtil.applySha256(data);
   }
 
   signTransaction(signingKey) {
@@ -53,6 +59,24 @@ class Transaction {
 
     updateBalances();
     return true;
+  }
+
+  createOutputs() {
+    const output = new TransactionOutput(this.toAddress, this.amount);
+    output.transactionOutputId = this.transactionId;
+    this.outputs.push(output);
+
+    const leftoverAmount = getBalanceOfAddress(this.fromAddress) - this.amount;
+    if (leftoverAmount > 0) {
+      const leftoverOutput = new TransactionOutput(this.fromAddress, leftoverAmount);
+      leftoverOutput.transactionOutputId = this.transactionId;
+      this.outputs.push(leftoverOutput);
+    }
+  }
+
+  createInput(unspentOutputs) {
+    const input = new TransactionInput(unspentOutputs);
+    this.inputs.push(input);
   }
 }
 
