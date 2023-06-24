@@ -9,7 +9,7 @@ class Peer {
   constructor() {
     this.id = 0;
     this.blockchain = new Blockchain();
-    this.wallet = new Wallet();
+    this.wallet = new Wallet(this.blockchain);
     this.peers = [
       { id: 1, host: 'localhost', port: 6001 },
       { id: 2, host: 'localhost', port: 6002 },
