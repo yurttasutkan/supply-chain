@@ -1,4 +1,4 @@
-const Block = require("./block");
+const {Block} = require("./block");
 const Transaction = require("./transaction");
 
 
@@ -11,8 +11,42 @@ class Blockchain {
     this.balances = {};
   }
 
+  minePendingTransactions(miningRewardAddress) {
+    const rewardTx = new Transaction(
+      null,
+      miningRewardAddress,
+      this.miningReward
+    );
+    this.pendingTransactions.push(rewardTx);
+
+    const block = new Block(
+      this.chain.length,
+      Date.now(),
+      this.pendingTransactions,
+      this.getLastBlock().hash,
+      0
+    );
+
+    block.mineBlock(this.difficulty); // Mine the block
+
+    console.log("Block successfully mined!");
+    this.chain.push(block);
+
+    this.pendingTransactions = [];
+  }
+  
   createGenesisBlock() {
-    return new Block(0, Date.now(), [], "0", 0);
+    const transactions = []; // Initialize an empty array for transactions
+  
+    // Add initial transactions to establish the initial distribution of funds
+    const initialTransaction1 = new Transaction(null, "address1", 100);
+    transactions.push(initialTransaction1);
+  
+    const initialTransaction2 = new Transaction(null, "address2", 50);
+    transactions.push(initialTransaction2);
+  
+    // Create the genesis block with the initial transactions
+    return new Block(0, Date.now(), transactions, "0", 0);
   }
 
   getLastBlock() {

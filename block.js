@@ -29,6 +29,35 @@ class Block {
     }
     console.log("Block mined: " + this.hash);
   }
+
+  isBlockValid(previousBlock) {
+    if (this.hash !== this.calculateHash()) {
+      return false;
+    }
+
+    if (this.previousHash !== previousBlock.hash) {
+      return false;
+    }
+
+    // Validate timestamp
+    if (this.timestamp <= previousBlock.timestamp) {
+      return false;
+    }
+
+    // Validate transactions
+    for (const transaction of this.transactions) {
+      if (!transaction.isValid()) {
+        return false;
+      }
+    }
+
+    // Additional block validation logic goes here
+    // Implement any other checks as per your project's requirements
+
+    return true;
+  }
 }
 
-module.exports = Block;
+module.exports = {
+  Block
+};

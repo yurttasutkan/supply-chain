@@ -7,6 +7,7 @@ class Transaction {
     this.amount = amount;
     this.timestamp = Date.now();
     this.transactionId = this.calculateTransactionId();
+    this.signature = null;
   }
 
   calculateTransactionId() {
@@ -15,21 +16,43 @@ class Transaction {
     return hash;
   }
 
+  signTransaction(signingKey) {
+    const sign = crypto.createSign('SHA256');
+    sign.update(this.transactionId);
+    this.signature = sign.sign(signingKey, 'hex');
+  }
+
+  isValid() {
+    if (!this.fromAddress || !this.toAddress || this.amount <= 0) {
+      return false;
+    }
+
+    if (!this.signature || this.signature.length === 0) {
+      return false;
+    }
+
+    const publicKey = crypto.createPublicKey(this.fromAddress);
+    const verify = crypto.createVerify('SHA256');
+    verify.update(this.transactionId);
+
+    return verify.verify(publicKey, this.signature, 'hex');
+  }
+
   processTransaction() {
-    // Implement transaction processing logic here
+    if (!this.isValid()) {
+      console.log('Invalid transaction');
+      return false;
+    }
+
+    const senderBalance = getBalanceOfAddress(this.fromAddress);
+
+    if (senderBalance < this.amount) {
+      console.log('Insufficient balance. Transaction rejected.');
+      return false;
+    }
+
+    updateBalances();
     return true;
-  }
-
-  serialize() {
-    return JSON.stringify(this);
-  }
-
-  static deserialize(serializedTransaction) {
-    const { fromAddress, toAddress, amount, timestamp, transactionId } = JSON.parse(serializedTransaction);
-    const transaction = new Transaction(fromAddress, toAddress, amount);
-    transaction.timestamp = timestamp;
-    transaction.transactionId = transactionId;
-    return transaction;
   }
 }
 
