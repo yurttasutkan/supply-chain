@@ -29,30 +29,44 @@ class Wallet {
     }
     return balance;
   }
-
-  arrangeFunds(recipient, value, inputs, outputs, txid) {
+  
+  arrangeFunds(recipient, value, txid) {
     if (this.getBalance() < value) {
       console.log('!!! Not Enough funds to send transaction. Transaction Discarded.');
       return;
     }
-
+  
     let total = 0;
-
-    for (const [txid, UTXO] of this.UTXOs) {
-      total += UTXO.amount;
-      inputs.push(txid);
-
-      if (total >= value) break;
+    const inputs = [];
+    const outputs = [];
+  
+    const UTXOs = Array.from(this.peer.blockchain.UTXOs.values());
+    for (const UTXO of UTXOs) {
+      if (UTXO.belongsTo(this.publicKey)) {
+        total += UTXO.amount;
+        inputs.push(UTXO.txid);
+  
+        if (total >= value) break;
+      }
     }
-
+  
     const leftOver = total - value;
-    outputs.push(new TransactionOutput(recipient, value, txid));
-    outputs.push(new TransactionOutput(this.publicKey, leftOver, txid));
-
+    const output1 = new TransactionOutput(recipient, value, txid + '1'); // Eşsiz txid kullanımı
+    const output2 = new TransactionOutput(this.publicKey, leftOver, txid + '2'); // Eşsiz txid kullanımı
+  
+    outputs.push(output1);
+    outputs.push(output2);
+  
     for (const input of inputs) {
-      this.UTXOs.delete(input);
+      this.peer.blockchain.UTXOs.delete(input);
     }
+  
+    this.peer.blockchain.UTXOs.set(output1.txid, output1); // Yeni çıkış işlemleri için farklı txid kullanımı
+    this.peer.blockchain.UTXOs.set(output2.txid, output2); // Yeni çıkış işlemleri için farklı txid kullanımı
   }
+  
+  
+  
 
   sign(message) {
     const sign = crypto.createSign('SHA256');
