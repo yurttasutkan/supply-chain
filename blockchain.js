@@ -9,14 +9,16 @@ class Blockchain {
     this.pendingTransactions = [];
     this.miningReward = 100;
     this.balances = {};
-
+    this.mempool = [];
     // Create the genesis block and update balances
     this.chain.push(this.createGenesisBlock());
     this.balances = this.updateBalances();
+    this.UTXOs = {};
   }
 
   minePendingTransactions(miningRewardAddress) {
     const rewardTx = new Transaction(
+      this,
       null,
       miningRewardAddress,
       this.miningReward
@@ -143,6 +145,21 @@ class Blockchain {
 
   static deserialize(data) {
     return StringUtil.deserialize(data, Blockchain);
+  }
+
+  updateUTXOs(block) {
+    for (const transaction of block.transactions) {
+      // Remove spent transaction outputs
+      for (const input of transaction.inputs) {
+        delete this.UTXOs[input.transactionOutputId];
+      }
+
+      // Add new transaction outputs
+      for (let i = 0; i < transaction.outputs.length; i++) {
+        const output = transaction.outputs[i];
+        this.UTXOs[output.id] = output;
+      }
+    }
   }
 }
 

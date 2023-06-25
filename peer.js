@@ -9,12 +9,13 @@ class Peer {
   constructor() {
     this.id = 0;
     this.blockchain = new Blockchain();
-    this.wallet = new Wallet(this.blockchain);
+    this.wallet = new Wallet(this);
     this.peers = [
-      { id: 1, host: 'localhost', port: 6001 },
-      { id: 2, host: 'localhost', port: 6002 },
-      // Add more peers here
+      { id: 1, host: 'localhost', wallet: new Wallet(this) },
+      { id: 2, host: 'localhost', wallet: new Wallet(this) },
+      // Add more peers here with their respective wallets
     ];
+    
 
     this.messageQueue = [];
     this.server = null;
@@ -47,9 +48,13 @@ class Peer {
         console.log(`Peer ${this.id}: Server started on port ${this.port + peer.id}`);
       });
   
-      this.clientSockets.push(server);
+      server.on('connection', (socket) => {
+        this.clientSockets.push(socket); // Store the socket connection
+      });
     });
   }
+  
+  
   
 
   connectToPeers() {
@@ -60,13 +65,14 @@ class Peer {
             console.log(`Peer ${this.id}: Connected to Peer ${peer.id}`);
             this.clientSockets.push(client);
           });
-
           client.on('error', (error) => {
             console.log(`Peer ${this.id}: Connection to Peer ${peer.id} failed. Error: ${error.message}`);
           });
         }, 1000); // Add a delay of 1 second (adjust as needed)
-      }
+      }      
+      
     });
+    
   }
 
   startPeerTransactions() {
@@ -74,25 +80,39 @@ class Peer {
       const receiver = Math.floor(Math.random() * this.peers.length);
       if (receiver !== this.id) {
         const balance = this.wallet.getBalance();
+        console.log("balance: ", balance);
         if (balance > 0) {
           const amount = Math.floor(Math.random() * (balance * 1.2));
+          const receiverPublicKey = this.peers[receiver].wallet.publicKey;
           const transaction = new Transaction(
+            this.blockchain,
             this.wallet.publicKey,
-            this.peers[receiver].wallet.publicKey,
+            receiverPublicKey,
             amount
           );
           this.broadcastToAllPeers(StringUtil.serialize(transaction));
           console.log(`Peer ${this.id}: Transaction broadcasted -> ID: ${transaction.transactionId} Value: ${transaction.amount}`);
+          this.blockchain.minePendingTransactions();
         }
       }
     }, 5000);
   }
+  
+  
+  
+  
 
   startConsumer() {
     setInterval(() => {
       if (this.messageQueue.length > 0) {
         const message = this.messageQueue.shift();
-        const transaction = StringUtil.deserialize(message, Transaction);
+        const deserializedTransaction = StringUtil.deserialize(message, Transaction);
+        const transaction = new Transaction(
+          this.blockchain,
+          deserializedTransaction.fromAddress,
+          deserializedTransaction.toAddress,
+          deserializedTransaction.amount
+        );
         console.log(`Peer ${this.id}: Transaction received -> ${transaction.fromAddress.substring(0, 5)} ==> Number of txs in my mempool: ${this.blockchain.mempool.length}`);
         if (transaction.isValid()) {
           this.blockchain.mempool.push(transaction);

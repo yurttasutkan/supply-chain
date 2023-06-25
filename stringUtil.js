@@ -49,6 +49,14 @@ class StringUtil {
     const merkleTree = new MerkleTree(transactionIds);
     return merkleTree.getRoot();
   }
+
+  static serialize(data) {
+    return JSON.stringify(data);
+  }
+
+  static deserialize(serializedData) {
+    return JSON.parse(serializedData);
+  }
 }
 
 module.exports = StringUtil;

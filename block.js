@@ -21,6 +21,7 @@ class Block {
   }
 
   mineBlock(difficulty) {
+    console.log("Mining block.. ")
     while (this.hash.substring(0, difficulty) !== StringUtil.getDifficultyString(difficulty)) {
       this.nonce++;
       this.hash = this.calculateHash();
